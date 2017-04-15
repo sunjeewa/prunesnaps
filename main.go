@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -10,6 +11,9 @@ import (
 )
 
 func main() {
+
+	lastMonth := time.Now().AddDate(0, -1, 0)
+
 	// flags
 	volumeID := flag.String("volumeid", "volume id", "Volume Id")
 
@@ -27,6 +31,7 @@ func main() {
 
 	svc := ec2.New(sess)
 
+	// Snapshot describe input
 	params := &ec2.DescribeSnapshotsInput{
 		DryRun: aws.Bool(false),
 		Filters: []*ec2.Filter{
@@ -47,5 +52,16 @@ func main() {
 	}
 
 	// print the response
-	fmt.Println(resp)
+	for idx, item := range resp.Snapshots {
+		if checkSnapTime(*item.StartTime, lastMonth) {
+			fmt.Printf("[%d] id %s  created on %s Deleting\n", idx, *item.SnapshotId, *item.StartTime)
+		} else {
+			fmt.Printf("[%d] id %s  created on %s Keeping\n", idx, *item.SnapshotId, *item.StartTime)
+		}
+	}
+
+}
+
+func checkSnapTime(startTime, checkTime time.Time) bool {
+	return startTime.Before(checkTime)
 }
