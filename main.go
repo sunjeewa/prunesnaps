@@ -54,12 +54,22 @@ func main() {
 	// print the response
 	for idx, item := range resp.Snapshots {
 		if checkSnapTime(*item.StartTime, lastMonth) {
-			fmt.Printf("[%d] id %s  created on %s Deleting\n", idx, *item.SnapshotId, *item.StartTime)
+			fmt.Printf("[%d] id %s  created on %s. Scheduling for deletion\n", idx, *item.SnapshotId, *item.StartTime)
+			// Delete the snapshot
+			params := &ec2.DeleteSnapshotInput{
+				DryRun:     aws.Bool(false),
+				SnapshotId: item.SnapshotId,
+			}
+			_, err := svc.DeleteSnapshot(params)
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+
 		} else {
 			fmt.Printf("[%d] id %s  created on %s Keeping\n", idx, *item.SnapshotId, *item.StartTime)
 		}
 	}
-
 }
 
 func checkSnapTime(startTime, checkTime time.Time) bool {
